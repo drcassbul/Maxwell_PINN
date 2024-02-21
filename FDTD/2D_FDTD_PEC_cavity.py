@@ -50,8 +50,8 @@ LX = 1
 LY = 1
 
 # Number of grid points
-NX = 51
-NY = 51
+NX = 201
+NY = 201
 
 # Space increments
 DX = LX / (NX - 1)
@@ -241,7 +241,64 @@ ax.cax.colorbar(im)
 ax.cax.toggle_label(True)
 plt.suptitle('$t=T/4$')
 plt.tight_layout()
-plt.savefig(f'FDTD_cavity/PEC_field_map_t=T\4.png')
+plt.savefig(f'FDTD_cavity/PEC_field_map_t=0.25T.png')
+
+# Plot temporal evolution of the analytical and numerical solution (Ez)
+
+t_grid = np.linspace(0, T/Tp, NT)
+
+fig, ax = plt.subplots(1, 1, figsize=(10, 4))
+
+ax.plot(t_grid, E_Z_ref_array[:, NX//2, NY//2], 'k-', label='exact')
+ax.plot(t_grid, E_Z_array[:, NX//2, NY//2], 'r--', label=f"FDTD ($N_x = {{{NX}}}$)")
+# ax.set_title(r'$N_x = N_y = {} \Rightarrow \Delta t = {:.3f}$'.format(NX, DT))
+
+ax.set_xlabel(r'Time (period)')
+ax.set_ylabel(r'$E_z(x=0.5, y=0.5) (t)$')
+ax.grid()
+plt.legend(loc='upper left')
+
+plt.tight_layout()
+
+#plt.legend(loc = 'upper left')
+plt.savefig(f'FDTD_cavity/comp_exact_num_Ez_Nx={NX}.png')
+
+
+#%%
+# ============================================
+# Plot temporal evolution of L2 relative error
+# ============================================
+
+t_grid = np.linspace(0, T/Tp, NT)
+eps = 1e-8
+
+L2_Hx = np.sqrt(np.mean((H_X_array - H_X_ref_array)**2, axis=(1,2))) #/ np.sqrt(np.mean((H_X_ref_array+eps)**2, axis=(1,2)))
+L2_Hy = np.sqrt(np.mean((H_Y_array - H_Y_ref_array)**2, axis=(1,2))) #/ np.sqrt(np.mean((H_Y_ref_array+eps)**2, axis=(1,2)))
+L2_Ez = np.sqrt(np.mean((E_Z_array - E_Z_ref_array)**2, axis=(1,2))) #/ np.sqrt(np.mean((E_Z_ref_array+eps)**2, axis=(1,2)))
+
+# np.savetxt(f'FDTD_cavity/L2_NX={NX}.txt', np.stack((t_grid, err), axis=1))
+plt.figure()
+plt.plot(t_grid, L2_Hx, 'b-', label='$L^2(H_x)$')
+plt.plot(t_grid, L2_Hy, 'r-', label='$L^2(H_y)$')
+plt.plot(t_grid, L2_Ez, 'k-', label='$L^2(E_z)$')
+
+#%%
+# NX_list = [51, 101, 151]
+# plt.figure()
+# for NX in NX_list:
+#     data = np.loadtxt(f'L2_error/L2_NX={NX}.txt')
+#     t_grid = data[:, 0]
+#     err = data[:, 1]
+    
+#     plt.semilogy(t_grid, err, label=f'$N_x = {NX}$')
+
+plt.grid()
+plt.legend()
+plt.xlabel('Time (period)')
+plt.ylabel('relative $L^2$')
+plt.tight_layout()
+plt.savefig(f'FDTD_cavity/L2_error(t).png')
+
 # #%%
 
 # # =============================================================================
@@ -328,30 +385,5 @@ plt.savefig(f'FDTD_cavity/PEC_field_map_t=T\4.png')
 # plt.legend()
 # plt.tight_layout()
 # plt.savefig(f'energy/energy(t).png')
-# #%%
-# # =============================================================================
-# # Plot temporal evolution of euclidian error (L2 error)
-# # =============================================================================
 
-# t_grid = np.linspace(0, T/Tp, NT)
 
-# err = 1/((sqrt(NX)*sqrt(NY))) * (np.sum((E_Z_array - E_Z_ref_array)**2, axis=(1,2)) + np.sum((H_X_array - H_X_ref_array)**2, axis=(1,2)) + np.sum((H_Y_array - H_Y_ref_array)**2, axis=(1,2)))**(0.5) 
-# np.savetxt(f'L2_error/L2_NX={NX}.txt', np.stack((t_grid, err), axis=1))
-# plt.figure()
-# plt.loglog(t_grid, err)
-# #%%
-# NX_list = [51, 101, 151]
-# plt.figure()
-# for NX in NX_list:
-#     data = np.loadtxt(f'L2_error/L2_NX={NX}.txt')
-#     t_grid = data[:, 0]
-#     err = data[:, 1]
-    
-#     plt.semilogy(t_grid, err, label=f'$N_x = {NX}$')
-
-# plt.grid()
-# plt.legend()
-# plt.xlabel('Time (period)')
-# plt.ylabel('$L^2$ error')
-# plt.tight_layout()
-# plt.savefig(f'L2_error/L2_error(t).png')
