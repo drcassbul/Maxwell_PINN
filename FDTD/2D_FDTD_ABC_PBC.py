@@ -37,6 +37,11 @@ def plane_source_door(t, tstart, tstop, w):
     else:
         return 0,0
 
+def plane_source_exp(t, t0, tau, w):
+    Ez = np.exp(-(t-t0)**2/tau**2) * cos(w*t)
+    Hy = -np.exp(-(t-t0)**2/tau**2) * cos(w*t)
+
+    return Ez, Hy
 
 def rect_scatterer(x, y, x0, y0, dim_x, dim_y, eps_2, eps_1):
     eps_grid = np.where((np.abs(x - x0) <= dim_x) & (np.abs(y - y0) <= dim_y), eps_2, eps_1)
@@ -46,9 +51,11 @@ def rect_scatterer(x, y, x0, y0, dim_x, dim_y, eps_2, eps_1):
 # Physical constants
 # =============================================================================
 
-eps_r = 1 # Relative permittivity of medium
-mu_r = 1 # Relative permeability of medium
-c_r = 1/np.sqrt(eps_r*mu_r) # Relative speed of light in medium
+eps_1 = 1 # Relative permittivity of medium
+mu_1 = 1 # Relative permeability of medium
+eps_2 = 1
+mu_2 = 1
+c_r = 1/np.sqrt(eps_1*mu_1) # Relative speed of light in medium
 
 # =============================================================================
 # Numerical parameters
@@ -59,8 +66,8 @@ LX = 1
 LY = 1
 
 # Number of grid points
-NX = 201
-NY = 201
+NX = 301
+NY = 301
 
 # Space increments
 DX = LX / (NX - 1)
@@ -109,22 +116,28 @@ E_Z_ref_array = np.full((NT, *E_Z.shape), np.nan)
 H_X_ref_array = np.full((NT, *H_X.shape), np.nan)
 H_Y_ref_array = np.full((NT, *H_Y.shape), np.nan)
 
+# Partition the grid into two media
+eps_grid = np.where(MESH_X < 0.5, eps_1, eps_2)
+mu_grid_HX = np.where(MESH_HX_X < 0.5, mu_1, mu_2)
+mu_grid_HY = np.where(MESH_HY_Y < 0.5, mu_1, mu_2)
+
+
 for n in range(NT):
-    E_Z = E_Z + (DT / eps_r) * ((H_Y[1:, :] - H_Y[:-1, :])/DX + (H_X[:, :-1] - H_X[:, 1:])/DY)
+    E_Z = E_Z + (DT / eps_grid) * ((H_Y[1:, :] - H_Y[:-1, :])/DX + (H_X[:, :-1] - H_X[:, 1:])/DY)
     
-    H_X[:, 1:-1] = H_X[:, 1:-1] + DT/(DY * mu_r) * (E_Z[:, :-1] - E_Z[:, 1:])
-    H_Y[1:-1, :] = H_Y[1:-1, :] + DT/(DX * mu_r) * (E_Z[1:, :] - E_Z[:-1, :])
+    H_X[:, 1:-1] = H_X[:, 1:-1] + DT/(DY * mu_grid_HX[:, 1:-1]) * (E_Z[:, :-1] - E_Z[:, 1:])
+    H_Y[1:-1, :] = H_Y[1:-1, :] + DT/(DX * mu_grid_HY[1:-1, :]) * (E_Z[1:, :] - E_Z[:-1, :])
 
     # Boundary conditions for the magnetic field
     # Half step of Ez
-    E_Z_half = E_Z + 0.5*(DT / eps_r) * ((H_Y[1:, :] - H_Y[:-1, :])/DX + (H_X[:, :-1] - H_X[:, 1:])/DY)
+    E_Z_half = E_Z + 0.5*(DT / eps_grid) * ((H_Y[1:, :] - H_Y[:-1, :])/DX + (H_X[:, :-1] - H_X[:, 1:])/DY)
 
     H_X[:, 0] = H_X[:, -2] # Periodic
     H_X[:, -1] = H_X[:, 1]
     w = 2*np.pi * 4
     # Silver-Muller
-    H_Y[0, :] = np.sqrt(eps_r/mu_r) * (E_Z_half[0, :] - plane_source_door(t=n*DT, tstart=0, tstop=10*Tp, w=w)[0]) + plane_source_door(t=n*DT, tstart=0, tstop=10*Tp, w=w)[1]
-    H_Y[-1, :] = - np.sqrt(eps_r/mu_r) * E_Z_half[-1, :]
+    H_Y[0, :] = np.sqrt(eps_1/mu_1) * (E_Z_half[0, :] - plane_source_door(t=n*DT, tstart=0, tstop=1*Tp, w=w)[0]) + plane_source_door(t=n*DT, tstart=0, tstop=1*Tp, w=w)[1]
+    H_Y[-1, :] = - np.sqrt(eps_1/mu_1) * E_Z_half[-1, :]
 
     
     # Boundary conditions ABC + PBC
