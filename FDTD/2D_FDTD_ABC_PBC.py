@@ -136,7 +136,7 @@ for n in range(NT):
     H_X[:, -1] = H_X[:, 1]
     w = 2*np.pi * 4
     # Silver-Muller
-    H_Y[0, :] = np.sqrt(eps_1/mu_1) * (E_Z_half[0, :] - plane_source_door(t=n*DT, tstart=0, tstop=1*Tp, w=w)[0]) + plane_source_door(t=n*DT, tstart=0, tstop=1*Tp, w=w)[1]
+    H_Y[0, :] = np.sqrt(eps_1/mu_1) * (E_Z_half[0, :] - plane_source_door(t=n*DT, tstart=0, tstop=2*Tp, w=w)[0]) + plane_source_door(t=n*DT, tstart=0, tstop=2*Tp, w=w)[1]
     H_Y[-1, :] = - np.sqrt(eps_1/mu_1) * E_Z_half[-1, :]
 
     
@@ -186,9 +186,11 @@ for n in range(NT):
         # plt.savefig(f"FDTD_cavity/exact_snap_{n}.png")       
         # plt.close()
     
-        plt.figure()
+        plt.figure(figsize=(7*0.8,6*0.8))
         plt.pcolormesh(MESH_X, MESH_Y, E_Z, vmin=-1, vmax=1)
         plt.axis('scaled')
+        plt.xlabel(r'$x$')
+        plt.ylabel(r'$y$')
         plt.colorbar()
         plt.title(f'$t = {n*DT:.3f}$')
         plt.tight_layout()
